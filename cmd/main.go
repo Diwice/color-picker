@@ -11,6 +11,8 @@ func main() {
 		GREEN: 200,
 		BLUE: 100,
 	}
-	fmt.Print(some_rgb)
-	fmt.Print("\n")
+	fmt.Println(some_rgb)
+	fmt.Println(some_rgb.To_cmyk())
+	fmt.Println(some_rgb.To_hsv())
+	fmt.Println(some_rgb.To_hsl())
 }
