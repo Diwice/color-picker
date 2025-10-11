@@ -4,8 +4,8 @@ import "math"
 
 type RGB_obj struct {
 	RED uint8
-	BLUE uint8
 	GREEN uint8
+	BLUE uint8
 }
 
 type CMYK_obj struct {
@@ -28,18 +28,18 @@ type HSV_obj struct {
 }
 
 type CIELAB_obj struct {
-	a int16
-	b int16
-	L uint8
+	L float64
+	a float64
+	b float64
 }
 
 func round_to_two_digits(some_float float64) float64 {
 	return math.Round(some_float*math.Pow10(2)) / math.Pow10(2)
 }
 
-func (o RGB_obj) get_normalized_values() (float64, float64, float64) {
-	norm_r, norm_g, norm_b := float64(o.RED)/255.0, float64(o.GREEN)/255.0, float64(o.BLUE)/255.0
-	return norm_r, norm_g, norm_b
+func (o RGB_obj) get_normalized_values() (n_r, n_g, n_b float64) {
+	n_r, n_g, n_b = float64(o.RED)/255.0, float64(o.GREEN)/255.0, float64(o.BLUE)/255.0
+	return n_r, n_g, n_b
 }
 
 func (o RGB_obj) To_cmyk() CMYK_obj {
@@ -160,4 +160,66 @@ func (o RGB_obj) To_hsv() HSV_obj {
 	new_hsv_obj.VALUE = round_to_two_digits(new_hsv_obj.VALUE)
 
 	return new_hsv_obj
+}
+
+func (o RGB_obj) To_cielab() CIELAB_obj {
+	norm_r, norm_g, norm_b := o.get_normalized_values()
+	var linear_r, linear_g, linear_b float64
+	// fuck this shit shitty shit math.Pow
+	if norm_r <= 0.04045 {
+		linear_r = norm_r/12.92
+	} else {
+		linear_r = math.Pow(((norm_r + 0.055)/1.055),2.4)
+	}
+
+	if norm_g <= 0.04045 {
+		linear_g = norm_g/12.92
+	} else {
+		linear_g = math.Pow(((norm_g + 0.055)/1.055),2.4)
+	}
+
+	if norm_b <= 0.04045 {
+		linear_b = norm_b/12.92
+	} else {
+		linear_b = math.Pow(((norm_b + 0.055)/1.055),2.4)
+	}
+
+	cie_x := (linear_r*0.4124564321) + (linear_g*0.3575760771) + (linear_b*0.1804374825)
+	cie_y := (linear_r*0.2126729074) + (linear_g*0.7151521631) + (linear_b*0.0721749293)
+	cie_z := (linear_r*0.0193338956) + (linear_g*0.1191920199) + (linear_b*0.9503039864)
+	// d50 white point values
+	x_d, y_d, z_d := 0.964212, 1.000000, 0.825188
+
+	adapt_x := (cie_x*1.0478112) + (cie_y*0.0228866) + (cie_z*-0.0501270)
+	adapt_y := (cie_x*0.0295424) + (cie_y*0.9904844) + (cie_z*-0.0170491)
+	adapt_z := (cie_x*-0.0092345) + (cie_y*0.0150436) + (cie_z*0.7521316)
+	x_ratio, y_ratio, z_ratio := adapt_x/x_d, adapt_y/y_d, adapt_z/z_d
+
+	if x_ratio > 0.008856 {
+		x_ratio = math.Pow(x_ratio, 1.0/3.0)
+	} else {
+		x_ratio = (x_ratio/7.787037037037037) + (0.13793103448275862)
+	}
+
+	if y_ratio > 0.008856 {
+		y_ratio = math.Pow(y_ratio, 1.0/3.0)
+	} else {
+		y_ratio = (y_ratio/7.787037037037037) + (0.13793103448275862)
+	}	
+
+	if z_ratio > 0.008856 {
+		z_ratio = math.Pow(z_ratio, 1.0/3.0)
+	} else {
+		z_ratio = (z_ratio/7.787037037037037) + (0.13793103448275862)
+	}
+	new_cielab_obj := CIELAB_obj{
+		L: 116.0*y_ratio - 16.0,
+		a: 500.0*(x_ratio - y_ratio),
+		b: 200.0*(y_ratio - z_ratio),
+	}
+	new_cielab_obj.L = round_to_two_digits(new_cielab_obj.L)
+	new_cielab_obj.a = round_to_two_digits(new_cielab_obj.a)
+	new_cielab_obj.b = round_to_two_digits(new_cielab_obj.b)
+
+	return new_cielab_obj
 }
