@@ -45,6 +45,40 @@ func (o RGB_obj) get_normalized_values() (n_r, n_g, n_b float64) {
 	return n_r, n_g, n_b
 }
 
+func hex_format(hex string) string {
+	//
+}
+
+func sector_formatting(sector, chr, ie float64) (float64, float64, float64) {
+	//
+}
+
+func norm_formatting(a, b, c float64) (uint8, uint8, uint8) {
+	//
+}
+
+func cie_func(tp_val float64) float64 {
+	//
+}
+
+func reverse_cie_func(ti_val float64) float64 {
+	//
+}
+
+func gamut_clip(val float64) float64 {
+	if val < 0.0 {
+		val = 0.0
+	} else if val > 1.0 {
+		val = 1.0
+	}
+
+	return val
+}
+
+func linear_rgb_inverse(linear_val float64) float64 {
+	//
+}
+
 func (o RGB_obj) To_cmyk() CMYK_obj {
 	norm_r, norm_g, norm_b := o.get_normalized_values()
 	key := 1.0 - (math.Max(math.Max(norm_r, norm_b), norm_g))
@@ -250,4 +284,262 @@ func (o RGB_obj) To_hex() string {
 	res_hex = "#"+n_r+n_g+n_b
 
 	return res_hex
+}
+
+func (o CMYK_obj) To_rgb() RGB_obj {
+	new_red := 255*int((100.0 - o.CYAN)*(100.0 - o.KEY))
+	new_green := 255*int((100.0 - o.MAGENTA)*(100.0 - o.KEY))
+	new_blue := 255*int((100.0 - o.YELLOW)*(100.0 - o.KEY))
+
+	new_rgb_obj = RGB_obj{
+		RED: new_red,
+		GREEN: new_green,
+		BLUE: new_blue,
+	}
+
+	return new_rgb_obj
+}
+
+func (o CMYK_obj) To_hsl() HSL_obj {
+	//
+}
+
+func (o CMYK_obj) To_hsv() HSV_obj {
+	//
+}
+
+func (o CMYK_obj) To_cielab() CIELAB_obj {
+	//
+}
+
+func (o HSL_obj) To_rgb() RGB_obj {
+	chroma := ((1.0 - math.Abs(2.0*o.LIGHTNESS - 1.0))*o.SATURATION)/100.0
+
+	hue_sector := 6.0*o.HUE
+	ie_value := chroma*(1.0 - math.Abs(math.Mod(hue_sector, 2.0) - 1.0))
+	var norm_r, norm_g, norm_b float64
+
+	if n_hue_sector := hue_sector/100.0; n_hue_sector >= 0 && n_hue_sector < 1 {
+		norm_r = chroma
+		norm_g = ie_value
+		norm_b = 0.0
+	} else if n_hue_sector >= 1 && n_hue_sector < 2 {
+		norm_r = ie_value
+		norm_g = chroma
+		norm_b = 0.0
+	} else if n_hue_sector >= 2 && n_hue_sector < 3 {
+		norm_r = 0.0
+		norm_g = chroma
+		norm_b = ie_value
+	} else if n_hue_sector >= 3 && n_hue_sector < 4 {
+		norm_r = 0.0
+		norm_g = ie_value
+		norm_b = chroma
+	} else if n_hue_sector >= 4 && n_hue_sector < 5 {
+		norm_r = ie_value
+		norm_g = 0.0
+		norm_b = chroma
+	} else if n_hue_sector >= 5 && n_hue_sector < 6 {
+		norm_r = chroma
+		norm_g = 0.0
+		norm_b = ie_value
+	} else {
+		fmt.Println("Hue Sector is >= 6 or < 0 -", n_hue_sector)
+	}
+
+	l_adjust := o.LIGHTNESS - (chroma/2)
+
+	new_red, new_green, new_blue := l_adjust + norm_r, l_adjust + norm_g, l_adjust + norm_b
+
+	if new_red > 255.0 {
+		new_red = 255.0
+	} else {
+		new_red = math.Round(new_red)
+	}
+
+	if new_green > 255.0 {
+		new_green = 255.0
+	} else {
+		new_green = math.Round(new_green)
+	}
+
+	if new_blue > 255.0 {
+		new_blue = 255.0
+	} else {
+		new_blue = math.Round(new_blue)
+	}
+
+	new_rgb_obj := RGB_obj{
+		RED: uint8(new_red),
+		GREEN: uint8(new_green),
+		BLUE: uint8(new_blue),
+	}
+
+	return new_rgb_obj
+}
+
+func (o HSL_obj) To_cmyk() CMYK_obj {
+	//
+}
+
+func (o HSL_obj) To_hsv() HSV_obj {
+	//
+}
+
+func (o HSL_obj) To_cielab() CIELAB_obj {
+	//
+}
+
+func (o HSV_obj) To_rgb() RGB_obj {
+	chroma := o.VALUE*o.SATURATION
+
+	hue_sector := 6.0*o.HUE
+	ie_value := chroma*(1.0 - math.Abs(math.Mod(hue_sector, 2.0) - 1.0))
+	var norm_r, norm_g, norm_b float64
+
+	if f_sector := math.Floor(hue_sector/100.0); f_sector == 0.0 {
+		norm_r = chroma
+		norm_g = ie_value
+		norm_b = 0.0
+	} else if f_sector == 1.0 {
+		norm_r = ie_value
+		norm_g = chroma
+		norm_b = 0.0
+	} else if f_sector == 2.0 {
+		norm_r = 0.0
+		norm_g = chroma
+		norm_b = ie_value
+	} else if f_sector == 3.0 {
+		norm_r = 0.0
+		norm_g = ie_value
+		norm_b = chroma
+	} else if f_sector == 4.0 {
+		norm_r = ie_value
+		norm_g = 0.0
+		norm_b = chroma
+	} else if f_sector == 5.0 {
+		norm_r = chroma
+		norm_g = 0.0
+		norm_b = ie_value
+	} else {
+		fmt.Println("Sector > 5 or < 0; -", f_sector)
+	}
+
+	l_adjust := o.VALUE - chroma
+
+	new_red, new_green, new_blue := l_adjust + norm_r, l_adjust + norm_g, l_adjust + norm_b
+
+	if new_red > 255.0 {
+		new_red = 255.0
+	} else {
+		new_red = math.Round(new_red)
+	}
+
+	if new_green > 255.0 {
+		new_green = 255.0
+	} else {
+		new_green = math.Round(new_green)
+	}
+
+	if new_blue > 255.0 {
+		new_blue = 255.0
+	} else {
+		new_blue = math.Round(new_blue)
+	}
+
+	new_rgb_obj = RGB_obj{
+		RED: uint8(new_red),
+		GREEN: uint8(new_green),
+		BLUE: uint8(new_blue),
+	}
+
+	return new_rgb_obj
+}
+
+func (o HSV_obj) To_cmyk() CMYK_obj {
+	//
+}
+
+func (o HSV_obj) To_hsl() HSL_obj {
+	//
+}
+
+func (o HSV_obj) To_cielab() CIELAB_obj {
+	//
+}
+
+func (o CIELAB_obj) To_rgb() RGB_obj {
+	x_d, y_d, z_d := 0.964212, 1.000000, 0.825188
+
+	var x_ratio, y_ratio, z_ratio float64
+
+	if inv_a := (o.a/500.0) + ((o.L + 16.0)/116.0); inv_a > 0.206897 {
+		x_ratio = math.Pow(inv_a, 3.0)
+	} else {
+		x_ratio = 0.12841854934601665*(inv_a - 0.13793103448275862)
+	}
+
+	if inv_l := (o.L + 16.0)/116.0; inv_l > 0.206897 {
+		y_ratio = math.Pow(inv_l, 3.0)
+	} else {
+		y_ratio = 0.12841854934601665*(inv_l - 0.13793103448275862)
+	}
+
+	if inv_b := ((o.L + 16.0)/116.0) - (o.b/200.0) ; inv_b > 0.206897 {
+		z_ratio = math.Pow(inv_b, 3.0)
+	} else {
+		z_ratio = 0.12841854934601665*(inv_b - 0.13793103448275862)
+	}
+
+	adapt_x, adapt_y, adapt_z := x_ratio*x_d, y_ratio*y_d, z_ratio*z_d
+
+	cie_x := (adapt_x*1.047881) - (adapt_y*0.049241) - (adapt_z*0.009793)
+	cie_y := (adapt_x*-0.000974) + (adapt_y) + (adapt_z*0.000974)
+	cie_z := (adapt_x*0.009088) + (adapt_y*0.015794) + (adapt_z*1.015746)
+
+	linear_r := (cie_x*3.240479) + (cie_y*−1.537150) + (cie_z*−0.498535)
+	linear_g := (cie_x*−0.969256) + (cie_y*1.875992) + (cie_z*0.041556)
+	linear_b := (cie_x*0.055648) + (cie_y*−0.204043) + (cie_z*1.057311)
+
+	linear_r, linear_g, linear_b = gamut_clip(linear_r), gamut_clip(linear_g), gamut_clip(linear_b)
+
+	var new_red, new_green, new_blue float64
+
+	if linear_r >= 0.0031308 {
+		new_red = 12.92*linear_r
+	} else {
+		new_red = 1.055*(math.Pow(linear_r, 1.0/2.4) - 0.055)
+	}
+
+	if linear_g >= 0.0031308 {
+		new_green = 12.92*linear_g
+	} else {
+		new_green = 1.055*(math.Pow(linear_g, 1.0/2.4) - 0.055)
+	}
+
+	if linear_b >= 0.0031308 {
+		new_blue = 12.92*linear_b
+	} else {
+		new_blue = 1.055*(math.Pow(linear_b, 1.0/2.4) - 0.055)
+	}
+
+	new_rgb_obj := RGB_obj{
+		RED: uint8(math.Round(new_red*255.0)),
+		GREEN: uint8(math.Round(new_green*255.0)),
+		BLUE: uint8(math.Round(new_blue*255.0)),
+	}
+
+	return new_rgb_obj
+}
+
+func (o CIELAB_obj) To_cmyk() CMYK_obj {
+	//
+}
+
+func (o CIELAB_obj) To_hsl() HSL_obj {
+	//
+}
+
+func (o CIELAB_obj) To_hsv() HSV_obj {
+	//
 }
