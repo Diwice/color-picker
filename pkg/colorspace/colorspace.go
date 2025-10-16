@@ -112,7 +112,7 @@ func new_formatting(a, b, c float64) (uint8, uint8, uint8) {
 		c = math.Round(c)
 	}
 
-	return a, b, c
+	return uint8(a), uint8(b), uint8(c)
 }
 
 func cie_func(tp_val float64) float64 {
@@ -124,7 +124,7 @@ func cie_func(tp_val float64) float64 {
 		sub_val = (tp_val/7.787037037037037) + (0.13793103448275862)
 	}
 
-	return float64
+	return sub_val
 }
 
 func reverse_cie_func(ti_val float64) float64 {
@@ -136,7 +136,7 @@ func reverse_cie_func(ti_val float64) float64 {
 		sub_val = 0.12841854934601665*(ti_val - 0.13793103448275862)
 	}
 
-	return float64
+	return sub_val
 }
 
 func gamut_clip(val float64) float64 {
@@ -161,7 +161,7 @@ func norm_to_linear(norm_val float64) float64 {
 	return linear_color
 }
 
-func linear_color_inverse(linear_val float64) float64 {
+func linear_rgb_inverse(linear_val float64) float64 {
 	var inversed_color float64
 
 	if linear_val >= 0.0031308 {
@@ -348,7 +348,7 @@ func (o RGB_obj) To_hex() string {
 
 	hex_r, hex_g, hex_b = hex_format(hex_r), hex_format(hex_g), hex_format(hex_b)
 
-	res_hex = "#"+n_r+n_g+n_b
+	res_hex = "#"+hex_r+hex_g+hex_b
 
 	return res_hex
 }
@@ -358,7 +358,7 @@ func (o CMYK_obj) To_rgb() RGB_obj {
 	new_green := uint8(255.0*(((100.0 - o.MAGENTA)*(100.0 - o.KEY))/100.0))
 	new_blue := uint8(255.0*(((100.0 - o.YELLOW)*(100.0 - o.KEY))/100.0))
 
-	new_rgb_obj = RGB_obj{
+	new_rgb_obj := RGB_obj{
 		RED: new_red,
 		GREEN: new_green,
 		BLUE: new_blue,
@@ -487,7 +487,7 @@ func (o HSV_obj) To_rgb() RGB_obj {
 
 	new_red, new_green, new_blue := new_formatting(sub_red, sub_green, sub_blue)
 
-	new_rgb_obj = RGB_obj{
+	new_rgb_obj := RGB_obj{
 		RED: new_red,
 		GREEN: new_green,
 		BLUE: new_blue,
@@ -515,7 +515,7 @@ func (o HSV_obj) To_hsl() HSL_obj {
 		saturation = 0.0
 	}
 
-	new_hsl_obj = HSL_obj{
+	new_hsl_obj := HSL_obj{
 		HUE: o.HUE,
 		SATURATION: saturation*100.0,
 		LIGHTNESS: lightness*100.0,
@@ -555,9 +555,9 @@ func (o CIELAB_obj) To_rgb() RGB_obj {
 	cie_y := (adapt_x*-0.000974) + (adapt_y) + (adapt_z*0.000974)
 	cie_z := (adapt_x*0.009088) + (adapt_y*0.015794) + (adapt_z*1.015746)
 
-	linear_r := (cie_x*3.240479) + (cie_y*−1.537150) + (cie_z*−0.498535)
-	linear_g := (cie_x*−0.969256) + (cie_y*1.875992) + (cie_z*0.041556)
-	linear_b := (cie_x*0.055648) + (cie_y*−0.204043) + (cie_z*1.057311)
+	linear_r := (cie_x*3.240479) + (cie_y*-1.537150) + (cie_z*-0.498535)
+	linear_g := (cie_x*-0.969256) + (cie_y*1.875992) + (cie_z*0.041556)
+	linear_b := (cie_x*0.055648) + (cie_y*-0.204043) + (cie_z*1.057311)
 
 	linear_r, linear_g, linear_b = gamut_clip(linear_r), gamut_clip(linear_g), gamut_clip(linear_b)
 
