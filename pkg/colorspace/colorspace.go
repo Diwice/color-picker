@@ -215,7 +215,7 @@ func (o RGB_obj) To_hsl() HSL_obj {
 	min, max := min(min(norm_r, norm_g), norm_b), max(max(norm_r, norm_g), norm_b)
 	chroma := max - min
 
-	lightness := (max + min)/2
+	lightness := (max + min)/2.0
 	var saturation float64
 	var hue float64
 
@@ -225,18 +225,18 @@ func (o RGB_obj) To_hsl() HSL_obj {
 	} else {
 		var hue_ang_mod float64
 
-		if lightness <= 0.5 {
-			saturation = chroma/2*lightness
+		if lightness == 0.0 || lightness == 1.0 {
+			saturation = 0.0
 		} else {
-			saturation = chroma/(2 - 2*lightness)
+			saturation = chroma/(1.0 - math.Abs(2.0*lightness - 1.0))
 		}
 
 		if max == norm_r {
 			hue_ang_mod = (norm_g - norm_b)/chroma
 		} else if max == norm_g {
-			hue_ang_mod = ((norm_b - norm_r)/chroma) + 2
+			hue_ang_mod = ((norm_b - norm_r)/chroma) + 2.0
 		} else {
-			hue_ang_mod = ((norm_r - norm_g)/chroma) + 4
+			hue_ang_mod = ((norm_r - norm_g)/chroma) + 4.0
 		}
 
 		hue = hue_ang_mod*60.0
