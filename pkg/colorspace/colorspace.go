@@ -354,9 +354,9 @@ func (o RGB_obj) To_hex() string {
 }
 
 func (o CMYK_obj) To_rgb() RGB_obj {
-	new_red := 255*int((100.0 - o.CYAN)*(100.0 - o.KEY))
-	new_green := 255*int((100.0 - o.MAGENTA)*(100.0 - o.KEY))
-	new_blue := 255*int((100.0 - o.YELLOW)*(100.0 - o.KEY))
+	new_red := uint8(255.0*(((100.0 - o.CYAN)*(100.0 - o.KEY))/100.0))
+	new_green := uint8(255.0*(((100.0 - o.MAGENTA)*(100.0 - o.KEY))/100.0))
+	new_blue := uint8(255.0*(((100.0 - o.YELLOW)*(100.0 - o.KEY))/100.0))
 
 	new_rgb_obj = RGB_obj{
 		RED: new_red,
@@ -396,7 +396,7 @@ func (o CMYK_obj) To_cielab() CIELAB_obj {
 }
 
 func (o HSL_obj) To_rgb() RGB_obj {
-	chroma := ((1.0 - math.Abs(2.0*o.LIGHTNESS - 1.0))*o.SATURATION)/100.0
+	chroma := ((1.0 - math.Abs(2.0*(o.LIGHTNESS/100.0) - 1.0))*(o.SATURATION/100.0))/100.0
 
 	hue_sector := 6.0*o.HUE
 	ie_value := chroma*(1.0 - math.Abs(math.Mod(hue_sector, 2.0) - 1.0))
@@ -411,7 +411,7 @@ func (o HSL_obj) To_rgb() RGB_obj {
 		return RGB_obj{RED: 0.0, GREEN: 0.0, BLUE: 0.0}
 	}
 
-	l_adjust := o.LIGHTNESS - (chroma/2)
+	l_adjust := (o.LIGHTNESS/100.0) - (chroma/2.0)
 
 	sub_red, sub_green, sub_blue := l_adjust + norm_r, l_adjust + norm_g, l_adjust + norm_b
 
@@ -435,7 +435,26 @@ func (o HSL_obj) To_cmyk() CMYK_obj {
 }
 
 func (o HSL_obj) To_hsv() HSV_obj {
-	//
+	value := (o.LIGHTNESS/100.0) + (o.SATURATION/100.0)*min((o.LIGHTNESS/100.0), 1 - (o.LIGHTNESS/100.0))
+
+	var saturation float64
+
+	if value > 0.0 {
+		saturation = 2*(value - (o.LIGHTNESS/100.0))/value
+	} else if value == 0.0 {
+		saturation = 0.0
+	}
+
+	new_hsv_obj := HSV_obj{
+		HUE: o.HUE,
+		SATURATION: saturation*100.0,
+		VALUE: value*100.0,
+	}
+
+	new_hsv_obj.SATURATION = round_to_two_digits(new_hsv_obj.SATURATION)
+	new_hsv_obj.VALUE = round_to_two_digits(new_hsv_obj.VALUE)
+
+	return new_hsv_obj
 }
 
 func (o HSL_obj) To_cielab() CIELAB_obj {
@@ -447,7 +466,7 @@ func (o HSL_obj) To_cielab() CIELAB_obj {
 }
 
 func (o HSV_obj) To_rgb() RGB_obj {
-	chroma := o.VALUE*o.SATURATION
+	chroma := (o.VALUE/100.0)*(o.SATURATION/100.0)
 
 	hue_sector := 6.0*o.HUE
 	ie_value := chroma*(1.0 - math.Abs(math.Mod(hue_sector, 2.0) - 1.0))
@@ -462,7 +481,7 @@ func (o HSV_obj) To_rgb() RGB_obj {
 		return RGB_obj{RED: 0.0, GREEN: 0.0, BLUE: 0.0}
 	}
 
-	l_adjust := o.VALUE - chroma
+	l_adjust := (o.VALUE/100.0) - chroma
 
 	sub_red, sub_green, sub_blue := l_adjust + norm_r, l_adjust + norm_g, l_adjust + norm_b
 
@@ -486,7 +505,26 @@ func (o HSV_obj) To_cmyk() CMYK_obj {
 }
 
 func (o HSV_obj) To_hsl() HSL_obj {
-	//
+	lightness := (o.VALUE/100.0)*(1 - ((o.SATURATION/100.0)/2.0))
+
+	var saturation float64
+
+	if lightness > 0 && lightness < 1 {
+		saturation = ((o.VALUE/100.0) - lightness)/min(lightness, 1.0 - lightness)
+	} else if lightness == 0 || lightness == 1 {
+		saturation = 0.0
+	}
+
+	new_hsl_obj = HSL_obj{
+		HUE: o.HUE,
+		SATURATION: saturation*100.0,
+		LIGHTNESS: lightness*100.0,
+	}
+
+	new_hsl_obj.SATURATION = round_to_two_digits(new_hsl_obj.SATURATION)
+	new_hsl_obj.LIGHTNESS = round_to_two_digits(new_hsl_obj.LIGHTNESS)
+
+	return new_hsl_obj
 }
 
 func (o HSV_obj) To_cielab() CIELAB_obj {
