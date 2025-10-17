@@ -35,8 +35,8 @@ type HSV_obj struct {
 
 type CIELAB_obj struct {
 	L float64
-	a float64
-	b float64
+	A float64
+	B float64
 }
 
 // Helper functions. Made for "DRY".
@@ -330,13 +330,13 @@ func (o RGB_obj) To_cielab() CIELAB_obj {
 
 	new_cielab_obj := CIELAB_obj{
 		L: 116.0*final_y - 16.0,
-		a: 500.0*(final_x - final_y),
-		b: 200.0*(final_y - final_z),
+		A: 500.0*(final_x - final_y),
+		B: 200.0*(final_y - final_z),
 	}
 
 	new_cielab_obj.L = round_to_two_digits(new_cielab_obj.L)
-	new_cielab_obj.a = round_to_two_digits(new_cielab_obj.a)
-	new_cielab_obj.b = round_to_two_digits(new_cielab_obj.b)
+	new_cielab_obj.A = round_to_two_digits(new_cielab_obj.A)
+	new_cielab_obj.B = round_to_two_digits(new_cielab_obj.B)
 
 	return new_cielab_obj
 }
@@ -540,13 +540,13 @@ func (o HSV_obj) To_cielab() CIELAB_obj {
 func (o CIELAB_obj) To_rgb() RGB_obj {
 	x_d, y_d, z_d := 0.964212, 1.000000, 0.825188
 
-	inv_a := (o.a/500.0) + ((o.L + 16.0)/116.0)
+	inv_a := (o.A/500.0) + ((o.L + 16.0)/116.0)
 	x_ratio := reverse_cie_func(inv_a)
 
 	inv_l := (o.L + 16.0)/116.0
 	y_ratio := reverse_cie_func(inv_l)
 
-	inv_b := ((o.L + 16.0)/116.0) - (o.b/200.0)
+	inv_b := ((o.L + 16.0)/116.0) - (o.B/200.0)
 	z_ratio := reverse_cie_func(inv_b)
 
 	adapt_x, adapt_y, adapt_z := x_ratio*x_d, y_ratio*y_d, z_ratio*z_d
