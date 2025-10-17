@@ -56,37 +56,21 @@ func hex_format(hex string) string {
 // Both HSL/HSV to RGB are using the same algorithm
 
 func sector_formatting(sector, chr, ie float64) (float64, float64, float64, error) {
-	var n_r, n_g, n_b float64
-
-	if n_hue_sector := sector/100.0; n_hue_sector >= 0 && n_hue_sector < 1 {
-		n_r = chr
-		n_g = ie
-		n_b = 0.0
-	} else if n_hue_sector >= 1 && n_hue_sector < 2 {
-		n_r = ie
-		n_g = chr
-		n_b = 0.0
-	} else if n_hue_sector >= 2 && n_hue_sector < 3 {
-		n_r = 0.0
-		n_g = chr
-		n_b = ie
-	} else if n_hue_sector >= 3 && n_hue_sector < 4 {
-		n_r = 0.0
-		n_g = ie
-		n_b = chr
-	} else if n_hue_sector >= 4 && n_hue_sector < 5 {
-		n_r = ie
-		n_g = 0.0
-		n_b = chr
-	} else if n_hue_sector >= 5 && n_hue_sector < 6 {
-		n_r = chr
-		n_g = 0.0
-		n_b = ie
-	} else {
-		return 0.0, 0.0, 0.0, fmt.Errorf("Sector out of range : %f", n_hue_sector)
+	if sector >= 0 && sector < 1 {
+		return chr, ie, 0.0, nil
+	} else if sector >= 1 && sector < 2 {
+		return ie, chr, 0.0, nil
+	} else if sector >= 2 && sector < 3 {
+		return 0.0, chr, ie, nil
+	} else if sector >= 3 && sector < 4 {
+		return 0.0, ie, chr, nil
+	} else if sector >= 4 && sector < 5 {
+		return ie, 0.0, chr, nil
+	} else if sector >= 5 && sector < 6 {
+		return chr, 0.0, ie, nil
 	}
-
-	return n_r, n_g, n_b, nil
+	
+	return 0.0, 0.0, 0.0, fmt.Errorf("Sector out of range : %f", sector)
 }
 
 /* new_formatting INCLUDES gamut clipping.
@@ -94,6 +78,10 @@ Both HSV and HSL spaces hold more color information than RGB space does.
 Causes data color loss. Not like I could directly convert some color spaces to others. */
 
 func new_formatting(a, b, c float64) (uint8, uint8, uint8) {
+	a, b, c = gamut_clip(a), gamut_clip(b), gamut_clip(c)
+	
+	a, b, c = a*255.0, b*255.0, c*255.0
+
 	if a > 255.0 {
 		a = 255.0
 	} else {
@@ -354,9 +342,9 @@ func (o RGB_obj) To_hex() string {
 }
 
 func (o CMYK_obj) To_rgb() RGB_obj {
-	new_red := uint8(255.0*(((100.0 - o.CYAN)*(100.0 - o.KEY))/100.0))
-	new_green := uint8(255.0*(((100.0 - o.MAGENTA)*(100.0 - o.KEY))/100.0))
-	new_blue := uint8(255.0*(((100.0 - o.YELLOW)*(100.0 - o.KEY))/100.0))
+	new_red := uint8(math.Ceil(255.0*(1.0 - (o.CYAN/100.0))*(1.0 - (o.KEY/100.0))))
+	new_green := uint8(math.Ceil(255.0*(1.0 - (o.MAGENTA/100.0))*(1.0 - (o.KEY/100.0))))
+	new_blue := uint8(math.Ceil(255.0*(1.0 - (o.YELLOW/100.0))*(1.0 - (o.KEY/100.0))))
 
 	new_rgb_obj := RGB_obj{
 		RED: new_red,
@@ -396,9 +384,9 @@ func (o CMYK_obj) To_cielab() CIELAB_obj {
 }
 
 func (o HSL_obj) To_rgb() RGB_obj {
-	chroma := ((1.0 - math.Abs(2.0*(o.LIGHTNESS/100.0) - 1.0))*(o.SATURATION/100.0))/100.0
+	chroma := ((1.0 - math.Abs(2.0*(o.LIGHTNESS/100.0) - 1.0))*(o.SATURATION/100.0))
 
-	hue_sector := 6.0*o.HUE
+	hue_sector := o.HUE/60.0
 	ie_value := chroma*(1.0 - math.Abs(math.Mod(hue_sector, 2.0) - 1.0))
 	var norm_r, norm_g, norm_b float64
 
@@ -407,7 +395,7 @@ func (o HSL_obj) To_rgb() RGB_obj {
 		norm_g = sub_g
 		norm_b = sub_b
 	} else {
-		fmt.Printf("Error converting HSL to RGB : %ss / %s\n", err)
+		fmt.Printf("Error converting HSL to RGB : %v\n", err)
 		return RGB_obj{RED: 0.0, GREEN: 0.0, BLUE: 0.0}
 	}
 
@@ -439,9 +427,9 @@ func (o HSL_obj) To_hsv() HSV_obj {
 
 	var saturation float64
 
-	if value > 0.0 {
-		saturation = 2*(value - (o.LIGHTNESS/100.0))/value
-	} else if value == 0.0 {
+	if value != 0.0 {
+		saturation = 2.0*(1.0 - ((o.LIGHTNESS/100.0)/value))
+	} else {
 		saturation = 0.0
 	}
 
@@ -468,7 +456,7 @@ func (o HSL_obj) To_cielab() CIELAB_obj {
 func (o HSV_obj) To_rgb() RGB_obj {
 	chroma := (o.VALUE/100.0)*(o.SATURATION/100.0)
 
-	hue_sector := 6.0*o.HUE
+	hue_sector := o.HUE/60.0
 	ie_value := chroma*(1.0 - math.Abs(math.Mod(hue_sector, 2.0) - 1.0))
 	var norm_r, norm_g, norm_b float64
 
@@ -505,14 +493,14 @@ func (o HSV_obj) To_cmyk() CMYK_obj {
 }
 
 func (o HSV_obj) To_hsl() HSL_obj {
-	lightness := (o.VALUE/100.0)*(1 - ((o.SATURATION/100.0)/2.0))
+	lightness := (o.VALUE/100.0)*(1.0 - ((o.SATURATION/100.0)/2.0))
 
 	var saturation float64
 
-	if lightness > 0 && lightness < 1 {
-		saturation = ((o.VALUE/100.0) - lightness)/min(lightness, 1.0 - lightness)
-	} else if lightness == 0 || lightness == 1 {
+	if lightness == 0.0 || lightness == 1.0 {
 		saturation = 0.0
+	} else {
+		saturation = ((o.VALUE/100.0) - lightness)/min(lightness, 1.0 - lightness)
 	}
 
 	new_hsl_obj := HSL_obj{
