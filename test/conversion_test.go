@@ -173,8 +173,8 @@ func Test_CIELAB_to_RGB(t *testing.T) {
 
 	rgb_obj := cielab_obj.To_rgb()
 
-	if rgb_obj.RED != 226 || rgb_obj.GREEN != 147 || rgb_obj.BLUE != 0 {
-		t.Errorf("Expected : R-226/G-147/B-0 ; Got : R-%d/G-%d/B-%d", rgb_obj.RED, rgb_obj.GREEN, rgb_obj.BLUE)
+	if rgb_obj.RED != 200 || rgb_obj.GREEN != 126 || rgb_obj.BLUE != 54 {
+		t.Errorf("Expected : R-200/G-126/B-54 ; Got : R-%d/G-%d/B-%d", rgb_obj.RED, rgb_obj.GREEN, rgb_obj.BLUE)
 	}
 }
 

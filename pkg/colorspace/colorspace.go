@@ -152,10 +152,10 @@ func norm_to_linear(norm_val float64) float64 {
 func linear_rgb_inverse(linear_val float64) float64 {
 	var inversed_color float64
 
-	if linear_val >= 0.0031308 {
+	if linear_val <= 0.0031308 {
 		inversed_color = 12.92*linear_val
 	} else {
-		inversed_color = 1.055*(math.Pow(linear_val, 1.0/2.4) - 0.055)
+		inversed_color = 1.055*math.Pow(linear_val, 1.0/2.4) - 0.055
 	}
 
 	return inversed_color
@@ -538,11 +538,11 @@ func (o CIELAB_obj) To_rgb() RGB_obj {
 	z_ratio := reverse_cie_func(inv_b)
 
 	adapt_x, adapt_y, adapt_z := x_ratio*x_d, y_ratio*y_d, z_ratio*z_d
-
-	cie_x := (adapt_x*1.047881) - (adapt_y*0.049241) - (adapt_z*0.009793)
-	cie_y := (adapt_x*-0.000974) + (adapt_y) + (adapt_z*0.000974)
-	cie_z := (adapt_x*0.009088) + (adapt_y*0.015794) + (adapt_z*1.015746)
-
+	// Reverse D50 XYZ to D65 XYZ
+	cie_x := (adapt_x*0.9555793) + (adapt_y*-0.02303755) + (adapt_z*0.06316926)
+	cie_y := (adapt_x*-0.02828613) + (adapt_y*1.00993728) + (adapt_z*0.02100921)
+	cie_z := (adapt_x*0.01229970) + (adapt_y*-0.02048587) + (adapt_z*1.32994705)
+	// XYZ D65 to RGB reverse adaptation
 	linear_r := (cie_x*3.240479) + (cie_y*-1.537150) + (cie_z*-0.498535)
 	linear_g := (cie_x*-0.969256) + (cie_y*1.875992) + (cie_z*0.041556)
 	linear_b := (cie_x*0.055648) + (cie_y*-0.204043) + (cie_z*1.057311)
