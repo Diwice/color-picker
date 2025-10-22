@@ -2,22 +2,153 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strconv"
-	//"image/color"
+	"image/color"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/layout"
-	//"fyne.io/fyne/v2/canvas"
+	//"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
+	"github.com/Diwice/color-picker/pkg/colorspace"
 )
 
-func new_slider_field(mn, mx float64) *fyne.Container {
+type color_container struct {
+	rgb *colorspace.RGB_obj
+	cmyk *colorspace.CMYK_obj
+	hsv *colorspace.HSV_obj
+	hsl *colorspace.HSL_obj
+	lab *colorspace.CIELAB_obj
+	hex string
+}
+
+func (c *color_container) up_rgb(obj colorspace.RGB_obj) {
+	l_cmyk := obj.To_cmyk()
+	l_hsv := obj.To_hsv()
+	l_hsl := obj.To_hsl()
+	l_lab := obj.To_cielab()
+
+	c.cmyk = &l_cmyk
+	c.hsv = &l_hsv
+	c.hsl = &l_hsl
+	c.lab = &l_lab
+	c.hex = obj.To_hex()
+}
+
+func (c *color_container) up_cmyk(obj colorspace.CMYK_obj) {
+	l_rgb := obj.To_rgb()
+	l_hsv := obj.To_hsv()
+	l_hsl := obj.To_hsl()
+	l_lab := obj.To_cielab()
+
+	c.rgb = &l_rgb
+	c.hsv = &l_hsv
+	c.hsl = &l_hsl
+	c.lab = &l_lab
+	c.hex = c.rgb.To_hex()
+}
+
+func (c *color_container) up_hsv(obj colorspace.HSV_obj) {
+	l_rgb := obj.To_rgb()
+	l_cmyk := obj.To_cmyk()
+	l_hsl := obj.To_hsl()
+	l_lab := obj.To_cielab()
+
+	c.rgb = &l_rgb
+	c.cmyk = &l_cmyk
+	c.hsl = &l_hsl
+	c.lab = &l_lab
+	c.hex = c.rgb.To_hex()
+}
+
+func (c *color_container) up_hsl(obj colorspace.HSL_obj) {
+	l_rgb := obj.To_rgb()
+	l_cmyk := obj.To_cmyk()
+	l_hsv := obj.To_hsv()
+	l_lab := obj.To_cielab()
+
+	c.rgb = &l_rgb
+	c.cmyk = &l_cmyk
+	c.hsv = &l_hsv
+	c.lab = &l_lab
+	c.hex = c.rgb.To_hex()
+}
+
+func (c *color_container) up_lab(obj colorspace.CIELAB_obj) {
+	l_rgb := obj.To_rgb()
+	l_cmyk := obj.To_cmyk()
+	l_hsv := obj.To_hsv()
+	l_hsl := obj.To_hsl()
+
+	c.rgb = &l_rgb
+	c.cmyk = &l_cmyk
+	c.hsv = &l_hsv
+	c.hsl = &l_hsl
+	c.hex = c.rgb.To_hex()
+}
+
+func (c *color_container) up_hex(obj string) {
+	l_rgb, _ := colorspace.Hex_to_rgb(obj)
+	l_cmyk := l_rgb.To_cmyk()
+	l_hsv := l_rgb.To_hsv()
+	l_hsl := l_rgb.To_hsl()
+	l_lab := l_rgb.To_cielab()
+
+	c.rgb = &l_rgb
+	c.cmyk = &l_cmyk
+	c.hsv = &l_hsv
+	c.hsl = &l_hsl
+	c.lab = &l_lab
+}
+
+func (c *color_container) update_values(modified_obj any) {
+	switch modified_obj.(type) {
+		case *colorspace.RGB_obj :
+			ptr, _ := modified_obj.(*colorspace.RGB_obj)
+			c.up_rgb(*ptr)
+		case *colorspace.CMYK_obj :
+			ptr, _ := modified_obj.(*colorspace.CMYK_obj)
+			c.up_cmyk(*ptr)
+		case *colorspace.HSV_obj :
+			ptr, _ := modified_obj.(*colorspace.HSV_obj)
+			c.up_hsv(*ptr)
+		case *colorspace.HSL_obj :
+			ptr, _ := modified_obj.(*colorspace.HSL_obj)
+			c.up_hsl(*ptr)
+		case *colorspace.CIELAB_obj :
+			ptr, _ := modified_obj.(*colorspace.CIELAB_obj)
+			c.up_lab(*ptr)
+		case string :
+			c.up_hex(modified_obj.(string))
+		default :
+			fmt.Println("Unknown datatype")
+	}
+}
+
+func new_slider_field(name string, mn, mx, step float64) *fyne.Container {
+	text := widget.NewLabel(name)
+	text.Resize(fyne.NewSize(15, 35))
+	text.Move(fyne.NewPos(0,0))
+
 	entry := widget.NewEntry()
-	entry.SetText("0.00")
+
+	if math.Mod(step, 1.0) != 0.0 {
+		entry.SetText("0.00")
+	} else {
+		entry.SetText("0")
+	}
+
+	entry.MultiLine = false
+	
+	entry.Resize(fyne.NewSize(60,35))
+	entry.Move(fyne.NewPos(330, 0))
 
 	slider := widget.NewSlider(mn, mx)
-	slider.Step = 0.01
+	slider.Step = step
+
+	slider.Resize(fyne.NewSize(315, 35))
+	slider.Move(fyne.NewPos(20, 0))
 
 	entry.OnSubmitted = func(text string) {
 		if v, err := strconv.ParseFloat(text, 64); err == nil {
@@ -32,32 +163,77 @@ func new_slider_field(mn, mx float64) *fyne.Container {
 	}
 
 	slider.OnChanged = func(val float64) {
-		entry.SetText(fmt.Sprintf("%.2f", val))
+		if math.Mod(val, 1.0) != 0.0 {
+			entry.SetText(fmt.Sprintf("%.2f", val))
+		} else {
+			entry.SetText(fmt.Sprintf("%d", int(val)))
+		}
 	}
 
-	new_container := container.NewHBox(slider, layout.NewSpacer(), entry)
+	new_container := container.NewWithoutLayout(text, slider, entry)
 
 	return new_container
 }
 
 func main() {
+	starting_color := colorspace.RGB_obj{
+		RED: 0,
+		GREEN: 0,
+		BLUE: 0,
+	}
+
+	ct_cmyk := starting_color.To_cmyk()
+	ct_hsv := starting_color.To_hsv()
+	ct_hsl := starting_color.To_hsl()
+	ct_lab := starting_color.To_cielab()
+	ct_hex := starting_color.To_hex()
+
+	wrap_color := color_container{
+		rgb: &starting_color,
+		cmyk: &ct_cmyk,
+		hsv: &ct_hsv,
+		hsl: &ct_hsl,
+		lab: &ct_lab,
+		hex: ct_hex,
+	}
+
+	wrap_color.rgb.RED += 10
+
 	a := app.New()
-	w := a.NewWindow("Testing")
 
-	item_one := widget.NewAccordionItem("Item 1", widget.NewLabel("This sucks"))
+	if img, err := fyne.LoadResourceFromPath("../assets/coolskull.png"); err == nil {
+		a.SetIcon(img)
+	}
+
+	w := a.NewWindow("Color Picker")
+
+	color_display := canvas.NewRectangle(color.RGBA{R: 0, G: 0, B: 0, A: 255})
+	color_display.Resize(fyne.NewSize(200, 150))
 	
-	/*fixed_w := fyne.NewSize(60, entry.MinSize().Height)
-	entry_box := container.New(layout.NewHBoxLayout(), entry)
-	entry_box.Resize(fixed_w)
-	entry_box = container.NewMax(entry_box) */
+	color_box := container.NewMax(color_display)
+	//color_box.SetMinSize(fyne.NewSize(200, 150))
 
-	sub_items := new_slider_field(0.00, 100.00)
+	field_names := [3]string{"R", "G", "B"}
 
-	item_two := widget.NewAccordionItem("Item 2", sub_items)
+	sub_items := [3](*fyne.Container){}
 
-	accordion := widget.NewAccordion(item_one, item_two)
+	for i, v := range field_names {
+		sub_items[i] = new_slider_field(v, 0.0, 255.0, 1.0)
+	}
 
-	w.Resize(fyne.NewSize(400,150))
-	w.SetContent(accordion)
+	sub_box := container.NewVBox(sub_items[0], sub_items[1], sub_items[2])
+	item := widget.NewAccordionItem("RGB (sRGB / Regular RGB)", sub_box)
+
+	acc_one := widget.NewAccordion(item)
+
+	final_box := container.NewVScroll(container.NewVBox(color_box, acc_one))
+
+	rect := canvas.NewRectangle(color.RGBA{R: 35, G: 35, B: 35, A: 255})
+
+	content := container.NewMax(rect, final_box)
+
+	w.Resize(fyne.NewSize(400,400))
+	w.SetFixedSize(true)
+	w.SetContent(content)
 	w.ShowAndRun()
 }
