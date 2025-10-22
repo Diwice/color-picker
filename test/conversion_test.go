@@ -5,6 +5,18 @@ import (
 	"github.com/Diwice/color-picker/pkg/colorspace"
 )
 
+func Test_Hex_to_RGB(t *testing.T) {
+	hex := "#AB0302"
+
+	if converted_obj, err := colorspace.Hex_to_rgb(hex); err == nil {
+		if converted_obj.RED != 171 || converted_obj.GREEN != 3 || converted_obj.BLUE != 2 {
+			t.Errorf("Expected : R-171/G-3/B-2 ; Got : R-%d/G-%d/B-%d", converted_obj.RED, converted_obj.GREEN, converted_obj.BLUE)
+		}
+	} else {
+		t.Error(err)
+	}
+}
+
 func Test_RGB_to_Hex(t *testing.T) {
 	rgb_obj := colorspace.RGB_obj{
 		RED: 1,
@@ -191,3 +203,36 @@ func Test_CIELAB_RGB_Gamut_Clip(t *testing.T){
 		t.Errorf("Expected : R-255/G-0/B-0 ; Got : R-%d/G-%d/B-%d", rgb_obj.RED, rgb_obj.GREEN, rgb_obj.BLUE)
 	}
 }
+
+func Test_Two_Way_RGB(t *testing.T) {
+	rgb_obj := colorspace.RGB_obj{
+		RED: 100,
+		GREEN: 100,
+		BLUE: 100,
+	}
+
+	hsv_obj := rgb_obj.To_hsv()
+
+	new_rgb_obj := hsv_obj.To_rgb()
+
+	if new_rgb_obj.RED != 100 || new_rgb_obj.GREEN != 100 || new_rgb_obj.BLUE != 100 {
+		t.Errorf("Expected : R-100/G-100/B-100 ; Got : R-%d/G-%d/B-%d", new_rgb_obj.RED, new_rgb_obj.GREEN, new_rgb_obj.BLUE)
+	}
+}
+
+func Test_Multi_Conversion(t *testing.T) {
+	rgb_obj := colorspace.RGB_obj{
+		RED: 50,
+		GREEN: 75,
+		BLUE: 100,
+	}
+
+	hsv_obj := rgb_obj.To_hsv()
+
+	hsl_obj := hsv_obj.To_hsl()
+
+	if hsl_obj.HUE != 210.0 || hsl_obj.SATURATION != 33.33 || hsl_obj.LIGHTNESS != 29.42 {
+		t.Errorf("Expected : H-210.0/S-33.33/L-29.41 ; Got : H-%.2f/S-%.2f/L-%.2f", hsl_obj.HUE, hsl_obj.SATURATION, hsl_obj.LIGHTNESS)
+	}
+}
+

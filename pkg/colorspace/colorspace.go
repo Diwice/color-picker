@@ -1,8 +1,9 @@
 package colorspace
 
 import (
-	"math"
 	"fmt"
+	"math"
+	"strconv"
 )
 
 /* Since I'm stumbling on padding anyways, decided to use float64 data types instead.
@@ -167,6 +168,29 @@ func (o RGB_obj) get_normalized_values() (n_r, n_g, n_b float64) {
 }
 
 // Not gonna explain anything but RGB to CIE Lab since those are basic conversions.
+
+func Hex_to_rgb(hex string) (RGB_obj, error) {
+	hex_segments := [3]string{hex[1:3], hex[3:5], hex[5:]}
+
+	var processed_segments [3]uint8
+
+	for i, v := range hex_segments {
+		if parsed, ok := strconv.ParseInt(v, 16, 0); ok == nil {
+			processed_segments[i] = uint8(parsed)
+			continue
+		} 
+
+		return RGB_obj{RED: 0, GREEN: 0, BLUE: 0}, fmt.Errorf("Failed to parse %s during hex convertion", v)
+	} 
+
+	new_rgb_obj := RGB_obj{
+		RED: processed_segments[0],
+		GREEN: processed_segments[1],
+		BLUE: processed_segments[2],
+	}
+
+	return new_rgb_obj, nil
+}
 
 func (o RGB_obj) To_cmyk() CMYK_obj {
 	norm_r, norm_g, norm_b := o.get_normalized_values()
