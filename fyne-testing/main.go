@@ -169,6 +169,7 @@ func (o *custom_rect) Move(pos fyne.Position) {
 }
 
 func (o *custom_rect) Show() {
+	fmt.Println("SHOWED")
 	o.Rectangle.Show()
 }
 
@@ -181,14 +182,15 @@ func (o *custom_rect) Refresh() {
 }
 
 func new_hex_rect(w, h float32) *custom_rect {
-	new_rect := canvas.NewRectangle(color.RGBA{R: 100, G: 100, B: 100, A: 255})
-	new_rect.Resize(fyne.NewSize(w, h))
-
+	new_rect := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	
 	res_rect := &custom_rect{
 		Rectangle: new_rect,
 		width: w,
 		height: h,
 	}
+
+	res_rect.Resize(fyne.NewSize(res_rect.width, res_rect.height))
 
 	return res_rect
 }
@@ -278,8 +280,12 @@ func main() {
 	w := a.NewWindow("Color Picker")
 
 	hex_rect := new_hex_rect(100.0, 50.0)
-	hex_box := container.NewMax(hex_rect)
-	hex_box.Resize(fyne.NewSize(hex_rect.width, hex_rect.height))
+
+	//hex_box := container.NewWithoutLayout(hex_rect)
+	//hex_box.Resize(hex_rect.Size())
+
+	//hex_rect.Move(fyne.NewPos(100,0))
+	//hex_rect.Refresh()
 
 	acc_names := []string{"RGB (sRGB / Regular RGB)", "CMYK", "HSV", "HSL", "CIE L*a*b* (CIELAB)"}
 
@@ -302,21 +308,25 @@ func main() {
 	acc_fields := make([](*fyne.Container), len(acc_names))
 	sub_acc_fields := make([]fyne.CanvasObject, len(acc_fields)+1)
 
-	sub_acc_fields[0] = hex_box
+	sub_acc_fields[0] = hex_rect
 
 	for i, v := range acc_names {
 		acc_fields[i] = new_accordion(v, acc_field_names[i], acc_field_limits[i])
 		sub_acc_fields[i+1] = acc_fields[i]
 	}
 
-	//final_box := container.NewVScroll(container.NewVBox(sub_acc_fields...))
-	final_box := container.NewVScroll(container.NewVBox(sub_acc_fields...))
+	new_box := container.NewVBox(sub_acc_fields...)
+	final_box := container.NewVScroll(new_box)
+	final_box.Move(fyne.NewPos(0,100))
 	bg := canvas.NewRectangle(color.RGBA{R: 35, G: 35, B: 35, A: 255})
 
-	content := container.NewMax(bg, final_box)
+	content := container.NewStack(bg, final_box, hex_rect)
+
+	fmt.Println(hex_rect.Size())
 
 	w.Resize(fyne.NewSize(400,400))
 	w.SetFixedSize(true)
 	w.SetContent(content)
 	w.ShowAndRun()
+
 }
