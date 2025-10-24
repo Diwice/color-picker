@@ -151,6 +151,48 @@ func (c *color_container) update_values(modified_obj any) {
 	}
 }
 
+type custom_rect struct {
+	*canvas.Rectangle
+	width, height float32
+}
+
+func (o *custom_rect) MinSize() fyne.Size {
+	return fyne.NewSize(o.width, o.height)
+}
+
+func (o *custom_rect) Resize(size fyne.Size) {
+	o.Rectangle.Resize(size)
+}
+
+func (o *custom_rect) Move(pos fyne.Position) {
+	o.Rectangle.Move(pos)
+}
+
+func (o *custom_rect) Show() {
+	o.Rectangle.Show()
+}
+
+func (o *custom_rect) Hide() {
+	o.Rectangle.Hide()
+}
+
+func (o *custom_rect) Refresh() {
+	o.Rectangle.Refresh()
+}
+
+func new_hex_rect(w, h float32) *custom_rect {
+	new_rect := canvas.NewRectangle(color.RGBA{R: 100, G: 100, B: 100, A: 255})
+	new_rect.Resize(fyne.NewSize(w, h))
+
+	res_rect := &custom_rect{
+		Rectangle: new_rect,
+		width: w,
+		height: h,
+	}
+
+	return res_rect
+}
+
 func new_slider_field(name string, mn, mx, step float64) *fyne.Container {
 	text := widget.NewLabel(name)
 	text.Resize(fyne.NewSize(15, 35))
@@ -235,6 +277,10 @@ func main() {
 
 	w := a.NewWindow("Color Picker")
 
+	hex_rect := new_hex_rect(100.0, 50.0)
+	hex_box := container.NewMax(hex_rect)
+	hex_box.Resize(fyne.NewSize(hex_rect.width, hex_rect.height))
+
 	acc_names := []string{"RGB (sRGB / Regular RGB)", "CMYK", "HSV", "HSL", "CIE L*a*b* (CIELAB)"}
 
 	acc_field_names := [][]string{
@@ -254,15 +300,17 @@ func main() {
 	}
 
 	acc_fields := make([](*fyne.Container), len(acc_names))
-	sub_acc_fields := make([]fyne.CanvasObject, len(acc_fields))
+	sub_acc_fields := make([]fyne.CanvasObject, len(acc_fields)+1)
+
+	sub_acc_fields[0] = hex_box
 
 	for i, v := range acc_names {
 		acc_fields[i] = new_accordion(v, acc_field_names[i], acc_field_limits[i])
-		sub_acc_fields[i] = acc_fields[i]
+		sub_acc_fields[i+1] = acc_fields[i]
 	}
 
+	//final_box := container.NewVScroll(container.NewVBox(sub_acc_fields...))
 	final_box := container.NewVScroll(container.NewVBox(sub_acc_fields...))
-
 	bg := canvas.NewRectangle(color.RGBA{R: 35, G: 35, B: 35, A: 255})
 
 	content := container.NewMax(bg, final_box)
