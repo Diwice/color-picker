@@ -23,6 +23,31 @@ type color_container struct {
 	hex string
 }
 
+func create_empty_container() *color_container {
+	starting_color := colorspace.RGB_obj{
+		RED: 0,
+		GREEN: 0,
+		BLUE: 0,
+	}
+
+	ct_cmyk := starting_color.To_cmyk()
+	ct_hsv := starting_color.To_hsv()
+	ct_hsl := starting_color.To_hsl()
+	ct_lab := starting_color.To_cielab()
+	ct_hex := starting_color.To_hex()
+
+	res_container := color_container{
+		rgb: &starting_color,
+		cmyk: &ct_cmyk,
+		hsv: &ct_hsv,
+		hsl: &ct_hsl,
+		lab: &ct_lab,
+		hex: ct_hex,
+	}
+
+	return &res_container
+}
+
 func (c *color_container) up_rgb(obj colorspace.RGB_obj) {
 	l_cmyk := obj.To_cmyk()
 	l_hsv := obj.To_hsv()
@@ -175,27 +200,30 @@ func new_slider_field(name string, mn, mx, step float64) *fyne.Container {
 	return new_container
 }
 
+func new_accordion(acc_name string, field_names []string, field_ranges [][]float64) *fyne.Container {
+	sub_items := make([](*fyne.Container), len(field_names))
+
+	for i, v := range field_names {
+		sub_items[i] = new_slider_field(v, field_ranges[i][0], field_ranges[i][1], field_ranges[i][2])
+	} 
+
+	new_sub := make([]fyne.CanvasObject, len(sub_items))
+
+	for i, v := range sub_items {
+		new_sub[i] = v
+	}
+
+	sub_box := container.NewVBox(new_sub...)
+
+	item := widget.NewAccordionItem(acc_name, sub_box)
+
+	accordion := widget.NewAccordion(item)
+
+	return container.NewVBox(accordion)
+}
+
 func main() {
-	starting_color := colorspace.RGB_obj{
-		RED: 0,
-		GREEN: 0,
-		BLUE: 0,
-	}
-
-	ct_cmyk := starting_color.To_cmyk()
-	ct_hsv := starting_color.To_hsv()
-	ct_hsl := starting_color.To_hsl()
-	ct_lab := starting_color.To_cielab()
-	ct_hex := starting_color.To_hex()
-
-	wrap_color := color_container{
-		rgb: &starting_color,
-		cmyk: &ct_cmyk,
-		hsv: &ct_hsv,
-		hsl: &ct_hsl,
-		lab: &ct_lab,
-		hex: ct_hex,
-	}
+	wrap_color := create_empty_container()
 
 	wrap_color.rgb.RED += 10
 
@@ -207,30 +235,37 @@ func main() {
 
 	w := a.NewWindow("Color Picker")
 
-	color_display := canvas.NewRectangle(color.RGBA{R: 0, G: 0, B: 0, A: 255})
-	color_display.Resize(fyne.NewSize(200, 150))
-	
-	color_box := container.NewMax(color_display)
-	//color_box.SetMinSize(fyne.NewSize(200, 150))
+	acc_names := []string{"RGB (sRGB / Regular RGB)", "CMYK", "HSV", "HSL", "CIE L*a*b* (CIELAB)"}
 
-	field_names := [3]string{"R", "G", "B"}
-
-	sub_items := [3](*fyne.Container){}
-
-	for i, v := range field_names {
-		sub_items[i] = new_slider_field(v, 0.0, 255.0, 1.0)
+	acc_field_names := [][]string{
+		{"R", "G", "B"},
+		{"C", "M", "Y", "K"},
+		{"H", "S", "V"},
+		{"H", "S", "L"},
+		{"L", "a", "b"},
 	}
 
-	sub_box := container.NewVBox(sub_items[0], sub_items[1], sub_items[2])
-	item := widget.NewAccordionItem("RGB (sRGB / Regular RGB)", sub_box)
+	acc_field_limits := [][][]float64{
+		{{0.0, 255.0, 1.0}, {0.0, 255.0, 1.0}, {0.0, 255.0, 1.0}},
+		{{0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}},
+		{{0.0, 360.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}},
+		{{0.0, 360.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}},
+		{{0.0, 100.0, 0.01}, {-150.0, 150.0, 0.01}, {-150.0, 150.0, 0.01}},
+	}
 
-	acc_one := widget.NewAccordion(item)
+	acc_fields := make([](*fyne.Container), len(acc_names))
+	sub_acc_fields := make([]fyne.CanvasObject, len(acc_fields))
 
-	final_box := container.NewVScroll(container.NewVBox(color_box, acc_one))
+	for i, v := range acc_names {
+		acc_fields[i] = new_accordion(v, acc_field_names[i], acc_field_limits[i])
+		sub_acc_fields[i] = acc_fields[i]
+	}
 
-	rect := canvas.NewRectangle(color.RGBA{R: 35, G: 35, B: 35, A: 255})
+	final_box := container.NewVScroll(container.NewVBox(sub_acc_fields...))
 
-	content := container.NewMax(rect, final_box)
+	bg := canvas.NewRectangle(color.RGBA{R: 35, G: 35, B: 35, A: 255})
+
+	content := container.NewMax(bg, final_box)
 
 	w.Resize(fyne.NewSize(400,400))
 	w.SetFixedSize(true)
