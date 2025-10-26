@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
-	"math"
-	"strconv"
 	"image/color"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
-	//"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/widget"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"github.com/Diwice/color-picker/pkg/colorspace"
 )
 
@@ -46,20 +44,6 @@ func create_empty_container() *color_container {
 	}
 
 	return &res_container
-}
-
-func (c *color_container) up_hex(obj string) {
-	l_rgb, _ := colorspace.Hex_to_rgb(obj)
-	l_cmyk := l_rgb.To_cmyk()
-	l_hsv := l_rgb.To_hsv()
-	l_hsl := l_rgb.To_hsl()
-	l_lab := l_rgb.To_cielab()
-
-	c.rgb = &l_rgb
-	c.cmyk = &l_cmyk
-	c.hsv = &l_hsv
-	c.hsl = &l_hsl
-	c.lab = &l_lab
 }
 
 func (c *color_container) update_values(modified_obj any) {
@@ -142,60 +126,75 @@ func (c *color_container) update_values(modified_obj any) {
 			c.hsl = &l_hsl
 			c.lab = &l_lab
 		default :
-			fmt.Println("Unknown datatype")
+			fmt.Println("Unknown datatype - update date", v)
 	}
 }
 
-func new_slider_field(name string, mn, mx, step float64) *fyne.Container {
+func bind_helper(ptr any) binding.Float {
+	bind := binding.NewFloat()
+
+	switch v := ptr.(type) {
+		case *float64 :
+			bind.Set(*v)
+			bind.AddListener(binding.NewDataListener(func() {
+				val, _ := bind.Get()
+				*v = val
+			}))
+		case *uint8 :
+			bind.Set(float64(*v))
+			bind.AddListener(binding.NewDataListener(func() {
+				val, _ := bind.Get()
+				*v = uint8(val)
+			}))
+		default :
+			fmt.Println("Unknown datatype - bind helper", ptr)
+			return nil
+	}
+
+	return bind
+}
+
+func new_slider_field(kv any, mn, mx, step float64) *fyne.Container {
+	var name string
+	var value_ptr any
+
+	switch v := kv.(type) {
+		case map[string](*float64) :
+			for i, val := range v {
+				name = i
+				value_ptr = val
+			}
+		case map[string](*uint8) :
+			for i, val := range v {
+				name = i
+				value_ptr = val
+			}
+	}
+
+	new_bind := bind_helper(value_ptr)
+
 	text := widget.NewLabel(name)
 	text.Resize(fyne.NewSize(15, 35))
 	text.Move(fyne.NewPos(0,0))
 
-	entry := widget.NewEntry()
-
-	if math.Mod(step, 1.0) != 0.0 {
-		entry.SetText("0.00")
-	} else {
-		entry.SetText("0")
-	}
+	entry := widget.NewEntryWithData(binding.FloatToStringWithFormat(new_bind, "%.2f"))
 
 	entry.MultiLine = false
-	
 	entry.Resize(fyne.NewSize(60,35))
 	entry.Move(fyne.NewPos(330, 0))
 
-	slider := widget.NewSlider(mn, mx)
+	slider := widget.NewSliderWithData(mn, mx, new_bind)
 	slider.Step = step
 
 	slider.Resize(fyne.NewSize(315, 35))
 	slider.Move(fyne.NewPos(20, 0))
-
-	entry.OnSubmitted = func(text string) {
-		if v, err := strconv.ParseFloat(text, 64); err == nil {
-			if v >= slider.Min && v <= slider.Max {
-				slider.SetValue(v)
-			} else if v < slider.Min {
-				slider.SetValue(slider.Min)
-			} else {
-				slider.SetValue(slider.Max)
-			}
-		}
-	}
-
-	slider.OnChanged = func(val float64) {
-		if math.Mod(val, 1.0) != 0.0 {
-			entry.SetText(fmt.Sprintf("%.2f", val))
-		} else {
-			entry.SetText(fmt.Sprintf("%d", int(val)))
-		}
-	}
 
 	new_container := container.NewWithoutLayout(text, slider, entry)
 
 	return new_container
 }
 
-func new_accordion(acc_name string, field_names []string, field_ranges [][]float64) *fyne.Container {
+func new_accordion(acc_name string, field_names []any, field_ranges [][]float64) *fyne.Container {
 	sub_items := make([](*fyne.Container), len(field_names))
 
 	for i, v := range field_names {
@@ -219,61 +218,77 @@ func new_accordion(acc_name string, field_names []string, field_ranges [][]float
 
 func new_hex_elem() *fyne.Container {
 	hex_rect := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 255})
-	hex_rect.SetMinSize(fyne.NewSize(110, 100))
-	hex_rect.Resize(fyne.NewSize(110, 100))
+	hex_rect.SetMinSize(fyne.NewSize(120, 100))
+	hex_rect.Resize(fyne.NewSize(120, 100))
 	
 	outline_rect := canvas.NewRectangle(color.RGBA{R:0, G: 0, B: 0, A: 255})
-	outline_rect.SetMinSize(fyne.NewSize(126, 116))
-	outline_rect.Resize(fyne.NewSize(126, 116))
+	outline_rect.SetMinSize(fyne.NewSize(131, 116))
+	outline_rect.Resize(fyne.NewSize(131, 126))
 
 	some_text := canvas.NewText("Lorem Ipsum...", color.RGBA{R: 0, G: 0, B: 0, A: 255})
 	some_text.SetMinSize(fyne.NewSize(90, 20))
 	some_text.Resize(fyne.NewSize(90, 20))
 
 	hex_box := container.NewCenter(outline_rect, hex_rect, some_text)
-	hex_box.Resize(fyne.NewSize(400, 126))
+	hex_box.Resize(fyne.NewSize(400, 116))
 
 	entry := widget.NewEntry()
-	entry.Resize(fyne.NewSize(100,35))
+	entry.Resize(fyne.NewSize(80,35))
+	entry.Move(fyne.NewPos(60, 21))
 
 	entry_box := container.NewWithoutLayout(entry)
 
-	check := widget.NewCheck("Default", func (checked bool) {
+	check := widget.NewCheck("Bind text color to bg", func (checked bool) {
 		fmt.Println("Some text")
 	})
 
-	final_box := container.NewGridWithColumns(2, hex_box, container.NewGridWithRows(2, entry_box, check))
+	check_box := container.NewCenter(check)
+
+	final_box := container.NewGridWithColumns(2, hex_box, container.NewGridWithRows(2, entry_box, check_box))
 
 	return final_box
 }
 
-func form_final_fields(hex_box *fyne.Container) []fyne.CanvasObject {
-	acc_names := []string{"RGB (sRGB / Regular RGB)", "CMYK", "HSV", "HSL", "CIE L*a*b* (CIELAB)"}
+func form_final_fields(hex_box *fyne.Container, cc *color_container) []fyne.CanvasObject {
+	acc_names := []string{"CMYK", "HSV", "HSL", "CIE L*a*b* (CIELAB)"}
 
-	acc_field_names := [][]string{
-		{"R", "G", "B"},
-		{"C", "M", "Y", "K"},
-		{"H", "S", "V"},
-		{"H", "S", "L"},
-		{"L", "a", "b"},
+	rgb_fields := []any{map[string](*uint8){"R": &(cc.rgb.RED)}, map[string](*uint8){"G": &(cc.rgb.GREEN)}, map[string](*uint8){"B": &(cc.rgb.BLUE)}}
+
+	rgb_field_limits := [][]float64{{0.0, 255.0, 1.0}, {0.0, 255.0, 1.0}, {0.0, 255.0, 1.0}}
+
+	acc_field_names := [][]any{
+		{map[string](*float64){"C": &(cc.cmyk.CYAN)}, map[string](*float64){"M": &(cc.cmyk.MAGENTA)}, map[string](*float64){"Y": &(cc.cmyk.YELLOW)}, map[string](*float64){"K": &(cc.cmyk.KEY)}},
+		{map[string](*float64){"H": &(cc.hsv.HUE)}, map[string](*float64){"S": &(cc.hsv.SATURATION)}, map[string](*float64){"V": &(cc.hsv.VALUE)}},
+		{map[string](*float64){"H": &(cc.hsl.HUE)}, map[string](*float64){"S": &(cc.hsl.SATURATION)}, map[string](*float64){"L": &(cc.hsl.LIGHTNESS)}},
+		{map[string](*float64){"L": &(cc.lab.L)}, map[string](*float64){"a": &(cc.lab.A)}, map[string](*float64){"b": &(cc.lab.B)}},
 	}
 
 	acc_field_limits := [][][]float64{
-		{{0.0, 255.0, 1.0}, {0.0, 255.0, 1.0}, {0.0, 255.0, 1.0}},
 		{{0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}},
 		{{0.0, 360.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}},
 		{{0.0, 360.0, 0.01}, {0.0, 100.0, 0.01}, {0.0, 100.0, 0.01}},
 		{{0.0, 100.0, 0.01}, {-150.0, 150.0, 0.01}, {-150.0, 150.0, 0.01}},
 	}
 
-	acc_fields := make([](*fyne.Container), len(acc_names))
-	sub_acc_fields := make([]fyne.CanvasObject, len(acc_fields)+1)
+	sub_acc_fields := make([]fyne.CanvasObject, (len(acc_names)*2) + 6)
 
-	sub_acc_fields[0] = hex_box
+	spacer_rect := canvas.NewRectangle(color.RGBA{R: 0, G: 0, B: 0, A: 0})
+	spacer_rect.SetMinSize(fyne.NewSize(400, 10))
+	spacer_rect.Resize(fyne.NewSize(400, 10))
+
+	sub_acc_fields[0] = spacer_rect
+	sub_acc_fields[1] = hex_box
+	sub_acc_fields[2] = spacer_rect
+	sub_acc_fields[3] = widget.NewSeparator()
+
+	new_acc := new_accordion("RGB (sRGB / Regular RGB)", rgb_fields, rgb_field_limits)
+
+	sub_acc_fields[4] = new_acc
+	sub_acc_fields[5] = widget.NewSeparator()
 
 	for i, v := range acc_names {
-		acc_fields[i] = new_accordion(v, acc_field_names[i], acc_field_limits[i])
-		sub_acc_fields[i+1] = acc_fields[i]
+		sub_acc_fields[(i*2) + 6] = new_accordion(v, acc_field_names[i], acc_field_limits[i])
+		sub_acc_fields[(i*2) + 7] = widget.NewSeparator()
 	}
 
 	return sub_acc_fields
@@ -296,7 +311,7 @@ func main() {
 
 	hex_elem := new_hex_elem()
 
-	fields := form_final_fields(hex_elem)
+	fields := form_final_fields(hex_elem, wrap_color)
 
 	new_box := container.NewVBox(fields...)
 	final_box := container.NewVScroll(new_box)
