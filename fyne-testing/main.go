@@ -48,71 +48,6 @@ func create_empty_container() *color_container {
 	return &res_container
 }
 
-func (c *color_container) up_rgb(obj colorspace.RGB_obj) {
-	l_cmyk := obj.To_cmyk()
-	l_hsv := obj.To_hsv()
-	l_hsl := obj.To_hsl()
-	l_lab := obj.To_cielab()
-
-	c.cmyk = &l_cmyk
-	c.hsv = &l_hsv
-	c.hsl = &l_hsl
-	c.lab = &l_lab
-	c.hex = obj.To_hex()
-}
-
-func (c *color_container) up_cmyk(obj colorspace.CMYK_obj) {
-	l_rgb := obj.To_rgb()
-	l_hsv := obj.To_hsv()
-	l_hsl := obj.To_hsl()
-	l_lab := obj.To_cielab()
-
-	c.rgb = &l_rgb
-	c.hsv = &l_hsv
-	c.hsl = &l_hsl
-	c.lab = &l_lab
-	c.hex = c.rgb.To_hex()
-}
-
-func (c *color_container) up_hsv(obj colorspace.HSV_obj) {
-	l_rgb := obj.To_rgb()
-	l_cmyk := obj.To_cmyk()
-	l_hsl := obj.To_hsl()
-	l_lab := obj.To_cielab()
-
-	c.rgb = &l_rgb
-	c.cmyk = &l_cmyk
-	c.hsl = &l_hsl
-	c.lab = &l_lab
-	c.hex = c.rgb.To_hex()
-}
-
-func (c *color_container) up_hsl(obj colorspace.HSL_obj) {
-	l_rgb := obj.To_rgb()
-	l_cmyk := obj.To_cmyk()
-	l_hsv := obj.To_hsv()
-	l_lab := obj.To_cielab()
-
-	c.rgb = &l_rgb
-	c.cmyk = &l_cmyk
-	c.hsv = &l_hsv
-	c.lab = &l_lab
-	c.hex = c.rgb.To_hex()
-}
-
-func (c *color_container) up_lab(obj colorspace.CIELAB_obj) {
-	l_rgb := obj.To_rgb()
-	l_cmyk := obj.To_cmyk()
-	l_hsv := obj.To_hsv()
-	l_hsl := obj.To_hsl()
-
-	c.rgb = &l_rgb
-	c.cmyk = &l_cmyk
-	c.hsv = &l_hsv
-	c.hsl = &l_hsl
-	c.hex = c.rgb.To_hex()
-}
-
 func (c *color_container) up_hex(obj string) {
 	l_rgb, _ := colorspace.Hex_to_rgb(obj)
 	l_cmyk := l_rgb.To_cmyk()
@@ -128,71 +63,87 @@ func (c *color_container) up_hex(obj string) {
 }
 
 func (c *color_container) update_values(modified_obj any) {
-	switch modified_obj.(type) {
+	switch v := modified_obj.(type) {
 		case *colorspace.RGB_obj :
-			ptr, _ := modified_obj.(*colorspace.RGB_obj)
-			c.up_rgb(*ptr)
+			obj := *v
+
+			l_cmyk := obj.To_cmyk()
+			l_hsv := obj.To_hsv()
+			l_hsl := obj.To_hsl()
+			l_lab := obj.To_cielab()
+
+			c.cmyk = &l_cmyk
+			c.hsv = &l_hsv
+			c.hsl = &l_hsl
+			c.lab = &l_lab
+			c.hex = obj.To_hex()
 		case *colorspace.CMYK_obj :
-			ptr, _ := modified_obj.(*colorspace.CMYK_obj)
-			c.up_cmyk(*ptr)
+			obj := *v
+
+			l_rgb := obj.To_rgb()
+			l_hsv := obj.To_hsv()
+			l_hsl := obj.To_hsl()
+			l_lab := obj.To_cielab()
+
+			c.rgb = &l_rgb
+			c.hsv = &l_hsv
+			c.hsl = &l_hsl
+			c.lab = &l_lab
+			c.hex = c.rgb.To_hex()
 		case *colorspace.HSV_obj :
-			ptr, _ := modified_obj.(*colorspace.HSV_obj)
-			c.up_hsv(*ptr)
+			obj := *v
+
+			l_rgb := obj.To_rgb()
+			l_cmyk := obj.To_cmyk()
+			l_hsl := obj.To_hsl()
+			l_lab := obj.To_cielab()
+		
+			c.rgb = &l_rgb
+			c.cmyk = &l_cmyk
+			c.hsl = &l_hsl
+			c.lab = &l_lab
+			c.hex = c.rgb.To_hex()
 		case *colorspace.HSL_obj :
-			ptr, _ := modified_obj.(*colorspace.HSL_obj)
-			c.up_hsl(*ptr)
+			obj := *v
+
+			l_rgb := obj.To_rgb()
+			l_cmyk := obj.To_cmyk()
+			l_hsv := obj.To_hsv()
+			l_lab := obj.To_cielab()
+
+			c.rgb = &l_rgb
+			c.cmyk = &l_cmyk
+			c.hsv = &l_hsv
+			c.lab = &l_lab
+			c.hex = c.rgb.To_hex()
 		case *colorspace.CIELAB_obj :
-			ptr, _ := modified_obj.(*colorspace.CIELAB_obj)
-			c.up_lab(*ptr)
+			obj := *v
+
+			l_rgb := obj.To_rgb()
+			l_cmyk := obj.To_cmyk()
+			l_hsv := obj.To_hsv()
+			l_hsl := obj.To_hsl()
+
+			c.rgb = &l_rgb
+			c.cmyk = &l_cmyk
+			c.hsv = &l_hsv
+			c.hsl = &l_hsl
+			c.hex = c.rgb.To_hex()
 		case string :
-			c.up_hex(modified_obj.(string))
+			l_rgb, _ := colorspace.Hex_to_rgb(v)
+			l_cmyk := l_rgb.To_cmyk()
+			l_hsv := l_rgb.To_hsv()
+			l_hsl := l_rgb.To_hsl()
+			l_lab := l_rgb.To_cielab()
+
+			c.rgb = &l_rgb
+			c.cmyk = &l_cmyk
+			c.hsv = &l_hsv
+			c.hsl = &l_hsl
+			c.lab = &l_lab
 		default :
 			fmt.Println("Unknown datatype")
 	}
-}
-
-type custom_rect struct {
-	*canvas.Rectangle
-	width, height float32
-}
-
-func (o *custom_rect) MinSize() fyne.Size {
-	return fyne.NewSize(o.width, o.height)
-}
-
-func (o *custom_rect) Resize(size fyne.Size) {
-	o.Rectangle.Resize(size)
-}
-
-func (o *custom_rect) Move(pos fyne.Position) {
-	o.Rectangle.Move(pos)
-}
-
-func (o *custom_rect) Show() {
-	fmt.Println("SHOWED")
-	o.Rectangle.Show()
-}
-
-func (o *custom_rect) Hide() {
-	o.Rectangle.Hide()
-}
-
-func (o *custom_rect) Refresh() {
-	o.Rectangle.Refresh()
-}
-
-func new_hex_rect(w, h float32) *custom_rect {
-	new_rect := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 255})
-	
-	res_rect := &custom_rect{
-		Rectangle: new_rect,
-		width: w,
-		height: h,
-	}
-
-	res_rect.Resize(fyne.NewSize(res_rect.width, res_rect.height))
-
-	return res_rect
 }
 
 func new_slider_field(name string, mn, mx, step float64) *fyne.Container {
@@ -266,27 +217,37 @@ func new_accordion(acc_name string, field_names []string, field_ranges [][]float
 	return container.NewVBox(accordion)
 }
 
-func main() {
-	wrap_color := create_empty_container()
+func new_hex_elem() *fyne.Container {
+	hex_rect := canvas.NewRectangle(color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	hex_rect.SetMinSize(fyne.NewSize(110, 100))
+	hex_rect.Resize(fyne.NewSize(110, 100))
+	
+	outline_rect := canvas.NewRectangle(color.RGBA{R:0, G: 0, B: 0, A: 255})
+	outline_rect.SetMinSize(fyne.NewSize(126, 116))
+	outline_rect.Resize(fyne.NewSize(126, 116))
 
-	wrap_color.rgb.RED += 10
+	some_text := canvas.NewText("Lorem Ipsum...", color.RGBA{R: 0, G: 0, B: 0, A: 255})
+	some_text.SetMinSize(fyne.NewSize(90, 20))
+	some_text.Resize(fyne.NewSize(90, 20))
 
-	a := app.New()
+	hex_box := container.NewCenter(outline_rect, hex_rect, some_text)
+	hex_box.Resize(fyne.NewSize(400, 126))
 
-	if img, err := fyne.LoadResourceFromPath("../assets/coolskull.png"); err == nil {
-		a.SetIcon(img)
-	}
+	entry := widget.NewEntry()
+	entry.Resize(fyne.NewSize(100,35))
 
-	w := a.NewWindow("Color Picker")
+	entry_box := container.NewWithoutLayout(entry)
 
-	hex_rect := new_hex_rect(100.0, 50.0)
+	check := widget.NewCheck("Default", func (checked bool) {
+		fmt.Println("Some text")
+	})
 
-	//hex_box := container.NewWithoutLayout(hex_rect)
-	//hex_box.Resize(hex_rect.Size())
+	final_box := container.NewGridWithColumns(2, hex_box, container.NewGridWithRows(2, entry_box, check))
 
-	//hex_rect.Move(fyne.NewPos(100,0))
-	//hex_rect.Refresh()
+	return final_box
+}
 
+func form_final_fields(hex_box *fyne.Container) []fyne.CanvasObject {
 	acc_names := []string{"RGB (sRGB / Regular RGB)", "CMYK", "HSV", "HSL", "CIE L*a*b* (CIELAB)"}
 
 	acc_field_names := [][]string{
@@ -308,21 +269,41 @@ func main() {
 	acc_fields := make([](*fyne.Container), len(acc_names))
 	sub_acc_fields := make([]fyne.CanvasObject, len(acc_fields)+1)
 
-	sub_acc_fields[0] = hex_rect
+	sub_acc_fields[0] = hex_box
 
 	for i, v := range acc_names {
 		acc_fields[i] = new_accordion(v, acc_field_names[i], acc_field_limits[i])
 		sub_acc_fields[i+1] = acc_fields[i]
 	}
 
-	new_box := container.NewVBox(sub_acc_fields...)
+	return sub_acc_fields
+}
+
+func main() {
+	wrap_color := create_empty_container()
+
+	wrap_color.rgb.RED += 10
+
+	wrap_color.update_values(wrap_color.rgb)
+
+	a := app.New()
+
+	if img, err := fyne.LoadResourceFromPath("../assets/coolskull.png"); err == nil {
+		a.SetIcon(img)
+	}
+
+	w := a.NewWindow("Color Picker")
+
+	hex_elem := new_hex_elem()
+
+	fields := form_final_fields(hex_elem)
+
+	new_box := container.NewVBox(fields...)
 	final_box := container.NewVScroll(new_box)
-	final_box.Move(fyne.NewPos(0,100))
+
 	bg := canvas.NewRectangle(color.RGBA{R: 35, G: 35, B: 35, A: 255})
 
-	content := container.NewStack(bg, final_box, hex_rect)
-
-	fmt.Println(hex_rect.Size())
+	content := container.NewStack(bg, final_box)
 
 	w.Resize(fyne.NewSize(400,400))
 	w.SetFixedSize(true)
