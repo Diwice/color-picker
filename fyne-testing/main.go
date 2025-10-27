@@ -294,12 +294,35 @@ func form_final_fields(hex_box *fyne.Container, cc *color_container) []fyne.Canv
 	return sub_acc_fields
 }
 
+func (o color_container) check_for_updates[T any](old_obj color_container) T {
+	var nil_val T
+
+	if o.rgb.RED != old_obj.rgb.RED || o.rgb.GREEN != old_obj.rgb.GREEN || o.rgb.BLUE != old_obj.rgb.BLUE {
+		return o.rgb
+	} else if o.cmyk.CYAN != old_obj.cmyk.CYAN || o.cmyk.MAGENTA != old_obj.cmyk.MAGENTA || o.cmyk.YELLOW != old_obj.cmyk.YELLOW || o.cmyk.KEY != old_obj.cmyk.KEY {
+		return o.cmyk
+	} else if o.hsv.HUE != old_obj.hsv.HUE || o.hsv.SATURATION != old_obj.hsv.SATURATION || o.hsv.VALUE != old_obj.hsv.VALUE {
+		return o.hsv
+	} else if o.hsl.HUE != old_obj.hsl.HUE || o.hsl.SATURATION != old_obj.hsl.SATURATION || o.hsl.LIGHTNESS != old_obj.hsl.LIGHTNESS {
+		return o.hsl
+	} else if o.lab.L != old_obj.lab.L || o.lab.A != old_obj.lab.A || o.lab.B != old_obj.lab.B {
+		return o.lab
+	} else if o.hex != old_obj.hex {
+		return o.hex
+	}
+
+	return T
+}
+
 func main() {
 	wrap_color := create_empty_container()
-
-	wrap_color.rgb.RED += 10
-
-	wrap_color.update_values(wrap_color.rgb)
+	
+	go func () {
+		for {
+			old_wrap := wrap_color
+			if v := wrap_color.check_for_updates(old_wrap); v != 
+		}
+	}
 
 	a := app.New()
 
